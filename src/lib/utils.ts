@@ -56,6 +56,7 @@ export function getUnitBn(unit: string): string {
 }
 
 export function getBanglaDate(): string {
+  if (typeof window === "undefined") return "সোমবার, ২৬ অক্টোবর, ২০২৬"; // Fallback for SSR
   const now = new Date();
   const days = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"];
   const months = [

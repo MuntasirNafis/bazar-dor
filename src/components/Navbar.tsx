@@ -1,176 +1,155 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "@/lib/auth-client";
-import { getBanglaDate, type Category } from "@/lib/utils";
+import { getBanglaDate, formatPrice, type Category, type Product } from "@/lib/utils";
 
 export default function Navbar() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
   const { data: session, isPending } = useSession();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tickerData, setTickerData] = useState<Product[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [banglaDate, setBanglaDate] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch("https://api.api-store.workers.dev/api/bazardor/categories");
-        if (res.ok) {
-          const data = await res.json();
-          setCategories(data);
-        }
-      } catch (err) {
-        console.error("Error fetching categories:", err);
+    setBanglaDate(getBanglaDate());
+
+    fetch("https://api.api-store.workers.dev/api/bazardor/categories")
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch((err) => console.error("Error fetching categories:", err));
+
+    fetch("https://api.api-store.workers.dev/api/bazardor/products")
+      .then((res) => res.json())
+      .then((data) => setTickerData(data))
+      .catch((err) => console.error("Error fetching products:", err));
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
       }
-    }
-    fetchCategories();
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const handleSignOut = async () => {
+    setDropdownOpen(false);
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          toast.success("সাইন আউট সফল হয়েছে!");
-          router.push("/");
-        },
-        onError: () => {
-          toast.error("সাইন আউট ব্যর্থ হয়েছে");
+          window.location.href = "/signin";
         },
       },
     });
   };
 
-  return (
-    <header className="border-b border-base-200 bg-base-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Top Bar */}
-        <div className="flex items-center justify-between py-3 border-b border-base-200">
-          <Link href="/" className="flex flex-col">
-            <span className="text-2xl font-bold text-emerald-700 flex items-center gap-2">
-              🛒 বাজার দর
-            </span>
-            <span className="text-xs text-base-content/70">{getBanglaDate()}</span>
-          </Link>
+  const user = session?.user;
 
-          {/* Desktop Auth Section */}
-          <div className="hidden md:flex items-center gap-3">
-            {isPending ? (
-              <span className="loading loading-spinner loading-sm"></span>
-            ) : session?.user ? (
-              <div className="dropdown dropdown-end">
-                <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-                  <div className="w-10 rounded-full ring ring-emerald-500 ring-offset-2">
-                    {session.user.image ? (
-                      <img src={session.user.image} alt={session.user.name || "User"} />
-                    ) : (
-                      <span className="text-lg font-bold flex items-center justify-center h-full bg-emerald-100 text-emerald-800">
-                        {session.user.name?.charAt(0) || "ইউ"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                  <li className="px-4 py-2 font-semibold text-emerald-700 border-b border-base-200">
-                    {session.user.name}
-                  </li>
-                  <li>
-                    <Link href="/profile">মাই প্রোফাইল</Link>
-                  </li>
-                  <li>
-                    <button onClick={handleSignOut} className="text-error">সাইন আউট</button>
-                  </li>
-                </ul>
+  return (
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-xs">
+      {/* Top Main Nav */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/logo-icon.png" alt="Bazar Dor Logo" className="w-10 h-10 object-contain rounded-lg" />
+          <div>
+            <h1 className="font-extrabold text-xl text-emerald-800 tracking-tight leading-none">বাজার দর</h1>
+            <p className="text-xs text-gray-500 mt-1">{banglaDate || "আজকের তারিখ"}</p>
+          </div>
+        </Link>
+
+        {isPending ? (
+          <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse"></div>
+        ) : user ? (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2.5 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-100 px-3 py-1.5 rounded-full transition cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold uppercase shadow-xs">
+                {user.image ? (
+                  <img src={user.image} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  user.name?.charAt(0) || "U"
+                )}
               </div>
-            ) : (
-              <div className="flex gap-2">
-                <Link href="/signin" className="btn btn-outline btn-emerald btn-sm">
-                  সাইন ইন
+              <span className="text-xs font-semibold text-gray-800 pr-1">{user.name}</span>
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 text-xs">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="font-bold text-gray-900">{user.name}</p>
+                  <p className="text-gray-400 truncate">{user.email}</p>
+                </div>
+                <Link
+                  href="/profile"
+                  onClick={() => setDropdownOpen(false)}
+                  className="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 font-medium transition"
+                >
+                  👤 আমার প্রোফাইল
                 </Link>
-                <Link href="/signup" className="btn btn-emerald bg-emerald-600 text-white hover:bg-emerald-700 btn-sm">
-                  সাইন আপ
-                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 font-medium transition border-t border-gray-50 mt-1 cursor-pointer"
+                >
+                  🚪 সাইন আউট
+                </button>
               </div>
             )}
           </div>
-
-          {/* Mobile Menu Toggle Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden btn btn-ghost btn-square"
-            aria-label="Toggle Navigation"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-6 h-6 stroke-current">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-        </div>
-
-        {/* Categories Bar (Desktop) */}
-        <nav className="hidden md:flex items-center gap-1 py-2 overflow-x-auto">
-          {categories.map((cat) => {
-            const isActive = pathname === `/category/${cat.slug}`;
-            return (
-              <Link
-                key={cat.id}
-                href={`/category/${cat.slug}`}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 shrink-0 ${
-                  isActive
-                    ? "bg-emerald-600 text-white"
-                    : "hover:bg-emerald-50 text-base-content"
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.nameBn}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-base-content/60 px-2 uppercase">ক্যাটাগরি</span>
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/category/${cat.slug}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-emerald-50"
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.nameBn}</span>
-                </Link>
-              ))}
-            </div>
-            <div className="pt-2 border-t border-base-200">
-              {session?.user ? (
-                <div className="space-y-2">
-                  <div className="px-2 text-sm font-semibold">{session.user.name}</div>
-                  <Link href="/profile" className="btn btn-emerald btn-outline btn-sm w-full">
-                    প্রোফাইল
-                  </Link>
-                  <button onClick={handleSignOut} className="btn btn-error btn-sm w-full">
-                    সাইন আউট
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Link href="/signin" className="btn btn-outline btn-emerald btn-sm flex-1">
-                    সাইন ইন
-                  </Link>
-                  <Link href="/signup" className="btn bg-emerald-600 text-white btn-sm flex-1">
-                    সাইন আপ
-                  </Link>
-                </div>
-              )}
-            </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Link href="/signin" className="px-4 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 rounded-lg transition border border-emerald-200">
+              সাইন ইন
+            </Link>
+            <Link href="/signup" className="px-4 py-1.5 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-xs">
+              সাইন আপ
+            </Link>
           </div>
         )}
       </div>
+
+      {/* Category Links Nav */}
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex gap-6 overflow-x-auto text-sm font-medium text-gray-700 border-t border-gray-100 scrollbar-none">
+        <Link href="/" className="hover:text-emerald-600 whitespace-nowrap">
+          হোম
+        </Link>
+        {categories.map((cat) => (
+          <Link key={cat.id || cat.slug} href={`/category/${cat.slug}`} className="hover:text-emerald-600 whitespace-nowrap flex items-center gap-1">
+            <span>{cat.icon}</span> <span>{cat.nameBn}</span>
+          </Link>
+        ))}
+      </nav>
+
+      {/* Clean Single Line Price Ticker Bar */}
+      {tickerData.length > 0 && (
+        <div className="bg-white border-t border-b border-gray-200 py-2 overflow-hidden whitespace-nowrap flex">
+          <div className="animate-marquee flex gap-8 text-xs items-center text-gray-700 font-medium">
+            {tickerData.map((item, idx) => {
+              const isUp = item.change?.dir === "up";
+              const isDown = item.change?.dir === "down";
+              return (
+                <span key={idx} className="flex items-center gap-1.5 px-2">
+                  <span>{item.image}</span>
+                  <span>{item.nameBn}</span>
+                  <span className="font-bold text-gray-900">{formatPrice(item.today)} টাকা/{item.unit}</span>
+                  <span className={`font-semibold ${isUp ? "text-red-600" : isDown ? "text-emerald-600" : "text-gray-500"}`}>
+                    {isUp && `▲ ${item.change.pct}%`}
+                    {isDown && `▼ ${Math.abs(item.change.pct)}%`}
+                    {!isUp && !isDown && `— ০.০%`}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
