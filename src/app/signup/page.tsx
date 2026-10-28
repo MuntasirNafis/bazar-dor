@@ -18,12 +18,12 @@ export default function SignUpPage() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("পাসওয়ার্ড মিলছে না, আবার লিখুন!");
+      toast.error("পাসওয়ার্ড মিলছে না, আবার লিখুন!", { id: "signup-err" });
       return;
     }
 
     if (password.length < 8) {
-      toast.error("পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে!");
+      toast.error("পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে!", { id: "signup-err" });
       return;
     }
 
@@ -37,14 +37,14 @@ export default function SignUpPage() {
       });
 
       if (error) {
-        toast.error(error.message || "সাইন আপ ব্যর্থ হয়েছে!");
+        toast.error(error.message || "সাইন আপ ব্যর্থ হয়েছে!", { id: "signup-err" });
       } else {
-        toast.success("সফলভাবে অ্যাকাউন্ট তৈরি হয়েছে!");
+        toast.success("সফলভাবে অ্যাকাউন্ট তৈরি হয়েছে! 🎉", { id: "signup-succ" });
         router.push("/");
       }
     } catch (err) {
       console.error("Signup error:", err);
-      toast.error("একটি ত্রুটি ঘটেছে, আবার চেষ্টা করুন!");
+      toast.error("একটি ত্রুটি ঘটেছে!", { id: "signup-err" });
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function SignUpPage() {
       });
     } catch (err) {
       console.error("Social login error:", err);
-      toast.error("সোশ্যাল লগইন ব্যর্থ হয়েছে!");
+      toast.error("সোশ্যাল লগইন ব্যর্থ হয়েছে!", { id: "social-err" });
     }
   };
 
@@ -66,8 +66,8 @@ export default function SignUpPage() {
     <main className="max-w-md mx-auto px-4 py-12">
       <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-extrabold text-gray-900">নতুন অ্যাকাউন্ট তৈরি করুন</h2>
-          <p className="text-xs text-gray-500 mt-1">বাজার দরে রেজিস্টার করুন</p>
+          <h2 className="text-2xl font-extrabold text-gray-900">অ্যাকাউন্ট তৈরি করুন</h2>
+          <p className="text-xs text-gray-500 mt-1">বিনামূল্যে সাইন আপ করে সব বিস্তারিত জানুন।</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
@@ -135,21 +135,21 @@ export default function SignUpPage() {
           <span className="relative bg-white px-3 text-xs text-gray-400">অথবা</span>
         </div>
 
-        {/* Social Login Buttons matching Figma */}
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => handleSocialLogin("google")}
             type="button"
             className="flex items-center justify-center gap-2 border border-gray-300 py-2 px-3 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer"
           >
-            <span>🌐</span> Google দিয়ে চালিয়ে যান
+            🌐 Google
           </button>
+          
           <button
             onClick={() => handleSocialLogin("github")}
             type="button"
             className="flex items-center justify-center gap-2 border border-gray-300 py-2 px-3 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer"
           >
-            <span>🐙</span> GitHub দিয়ে চালিয়ে যান
+            🐙 GitHub
           </button>
         </div>
 
@@ -159,12 +159,6 @@ export default function SignUpPage() {
             সাইন ইন করুন
           </Link>
         </div>
-      </div>
-
-      <div className="text-center mt-6">
-        <Link href="/" className="text-xs text-gray-500 hover:text-emerald-700 transition">
-          ← হোম পেজে ফিরে যান
-        </Link>
       </div>
     </main>
   );

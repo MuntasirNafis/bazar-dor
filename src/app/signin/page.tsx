@@ -1,100 +1,131 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "@/lib/auth-client";
 import toast from "react-hot-toast";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
-  const handleCredentialsSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await signIn.email(
-        { email, password },
-        {
-          onSuccess: () => {
-            toast.success("সফলভাবে সাইন ইন হয়েছে!");
-            router.push("/");
-          },
-          onError: (ctx) => {
-            toast.error(ctx.error.message || "সাইন ইন ব্যর্থ হয়েছে");
-          },
-        }
-      );
+      const { error } = await signIn.email({
+        email,
+        password,
+        callbackURL: callbackUrl,
+      });
+
+      if (error) {
+        toast.error(error.message || "সাইন ইন ব্যর্থ হয়েছে!", { id: "signin-err" });
+      } else {
+        toast.success("সফলভাবে সাইন ইন করা হয়েছে! 🎉", { id: "signin-succ" });
+        router.push(callbackUrl);
+      }
     } catch (err) {
-      toast.error("কিছু একটা সমস্যা হয়েছে");
+      console.error("Sign-in error:", err);
+      toast.error("একটি ত্রুটি ঘটেছে!", { id: "signin-err" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSocialSignIn = async (provider: "google" | "github") => {
-    await signIn.social({
-      provider,
-      callbackURL: "/",
-    });
+  const handleSocialLogin = async (provider: "google" | "github") => {
+    try {
+      await signIn.social({
+        provider,
+        callbackURL: callbackUrl,
+      });
+    } catch (err) {
+      console.error("Social login error:", err);
+      toast.error("সোশ্যাল লগইন ব্যর্থ হয়েছে!", { id: "social-err" });
+    }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[80vh] px-4 py-12">
-      <div className="card w-full max-w-md bg-base-100 border border-base-200 shadow-lg p-6 sm:p-8">
-        <h2 className="text-2xl font-bold text-center mb-2">বাজার দরে সাইন ইন করুন</h2>
-        <p className="text-sm text-center text-base-content/60 mb-6">আপনার অ্যাকাউন্টে প্রবেশ করুন</p>
+    <main className="max-w-md mx-auto px-4 py-12">
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-extrabold text-gray-900">সাইন ইন করুন</h2>
+          <p className="text-xs text-gray-500 mt-1">আপনার বাজার দর অ্যাকাউন্টে প্রবেশ করুন</p>
+        </div>
 
-        <form onSubmit={handleCredentialsSignIn} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 text-sm">
           <div>
-            <label className="label text-sm font-medium">ইমেইল ঠিকানা</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">ইমেইল</label>
             <input
               type="email"
-              required
-              placeholder="name@example.com"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input input-bordered w-full"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-800"
             />
           </div>
+
           <div>
-            <label className="label text-sm font-medium">পাসওয়ার্ড</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">পাসওয়ার্ড</label>
             <input
               type="password"
-              required
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input input-bordered w-full"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-800"
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn bg-emerald-600 hover:bg-emerald-700 text-white w-full mt-2">
-            {loading ? <span className="loading loading-spinner"></span> : "সাইন ইন"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-emerald-700 text-white font-medium py-2.5 rounded-lg hover:bg-emerald-800 transition shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            {loading ? "সাইন ইন হচ্ছে..." : "সাইন ইন করুন"}
           </button>
         </form>
 
-        <div className="divider my-6">অথবা</div>
+        <div className="relative my-6 text-center">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <span className="relative bg-white px-3 text-xs text-gray-400">অথবা</span>
+        </div>
 
-        <div className="space-y-3">
-          <button onClick={() => handleSocialSignIn("google")} className="btn btn-outline w-full flex items-center gap-2">
-            🌐 গুগল দিয়ে সাইন ইন
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => handleSocialLogin("google")}
+            type="button"
+            className="flex items-center justify-center gap-2 border border-gray-300 py-2 px-3 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+          >
+            🌐 Google
           </button>
-          <button onClick={() => handleSocialSignIn("github")} className="btn btn-outline w-full flex items-center gap-2">
-            💻 গিটহাবে সাইন ইন
+          
+          <button
+            onClick={() => handleSocialLogin("github")}
+            type="button"
+            className="flex items-center justify-center gap-2 border border-gray-300 py-2 px-3 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+          >
+            🐙 GitHub
           </button>
         </div>
 
-        <p className="text-center text-sm mt-6">
+        <div className="text-center mt-6 text-xs text-gray-500">
           অ্যাকাউন্ট নেই?{" "}
           <Link href="/signup" className="text-emerald-700 font-semibold hover:underline">
             সাইন আপ করুন
           </Link>
-        </p>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
